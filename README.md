@@ -2,6 +2,8 @@
 
 **Local-first vision for text-only DeepSeek Harness agents.**
 
+> npm package: **`dsh-vision-local`** · source repo: `gloryxpnv/dsh-tool-vision`
+
 Give a text-only model (DeepSeek, GLM, or any chat model without image input) the ability to *see* — using a **local** vision model, with **zero API cost** and **zero image data leaving your machine**.
 
 ```
@@ -25,7 +27,7 @@ DeepSeek (text-only) ──▶ vision tool ──▶ local VLM (LM Studio / Olla
 
 ```sh
 # in a DSH profile directory (or via the dsh CLI):
-dsh plugin --profile web add dsh-tool-vision
+dsh plugin --profile web add dsh-vision-local
 ```
 
 Then add the plugin row to your profile patch (`cordis.patch.yml`), or rely on the bundle's own layer — the bundle ships a ready-to-use `cordis.patch.yml` with sane defaults.

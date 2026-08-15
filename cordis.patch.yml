@@ -1,9 +1,9 @@
-# dsh-tool-vision bundle layer.
+# dsh-vision-local bundle layer.
 # Adds the model-facing `vision` tool and the optional `vision-bridge` service
 # that lets text-only routes admit pasted/uploaded images as VLM descriptions.
 - insert:
     - id: tool-vision
-      name: dsh-tool-vision
+      name: dsh-vision-local
       config:
         # Structured mode returns fixed-shape JSON evidence (summary / OCR /
         # layout / semantics / visual / uncertainty) parsed into an object.

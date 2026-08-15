@@ -19,7 +19,7 @@ DeepSeek (text-only) ──▶ vision tool ──▶ local VLM (LM Studio / Olla
 - 📋 **Structured evidence, not a blurry retelling.** The VLM is asked to fill a fixed JSON template — `summary`, `ocr` (verbatim full-text + lines), `layout` regions with reading order, `semantics` (entities & relations), `visual` (colors / style), and an explicit `uncertainty` list. Your main model quotes specifics instead of guessing.
 - 🛡️ **Anti-hallucination by design.** The template *requires* the model to state what it could not determine in `uncertainty`; OCR of an image with no text returns an empty field rather than invented words. If the VLM fails to produce valid JSON, the plugin falls back to the raw answer and marks it — never silently fabricates.
 - 📎 **Paste / upload an image and it just works.** The optional `vision-bridge` service lets text-only routes admit pasted or uploaded images: the host replaces the image part with a local VLM description before the prompt reaches the model. No `read_image` gate rejection, no saving to a file first.
-- ⚙️ **Zero-config defaults, fully tunable.** Points at `http://127.0.0.1:4407/v1` by default (LM Studio); every knob — endpoint, model id, token budget, timeouts, image size cap, structured on/off — is a documented config field.
+- ⚙️ **Zero-config defaults, fully tunable.** Points at `http://127.0.0.1:1234/v1` by default (LM Studio's default port); every knob — endpoint, model id, token budget, timeouts, image size cap, structured on/off — is a documented config field.
 - 🚀 **Tuned for local GPUs.** Defaults (8192 output tokens, 50 MB image cap, 180 s timeout) are sized for a local workstation GPU running a 9B-class VLM, not a thin cloud request.
 - 🔌 **One plugin, two surfaces.** A model-facing `vision` tool (call it whenever an image path or question is in play) plus an optional `vision-bridge` service for hosts that want automatic image admission on text-only routes.
 
@@ -79,7 +79,7 @@ If the VLM reply cannot be parsed as JSON, `answer` falls back to the raw text w
 
 | Field | Default | Description |
 | :-- | :-- | :-- |
-| `baseURL` | `http://127.0.0.1:4407/v1` | OpenAI-compatible endpoint root (no trailing path) |
+| `baseURL` | `http://127.0.0.1:1234/v1` | OpenAI-compatible endpoint root (no trailing path) |
 | `model` | `qwen3.5-9b-vlm` | Vision-language model id served by the endpoint |
 | `maxTokens` | `8192` | Output token cap; reasoning VLMs burn part of it on thinking |
 | `structured` | `true` | Ask for fixed-shape JSON evidence and return it parsed |

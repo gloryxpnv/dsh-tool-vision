@@ -18,7 +18,7 @@ DeepSeek (text-only) ──▶ vision tool ──▶ local VLM (LM Studio / Olla
 - 🏠 **Fully local, fully private.** Images are sent to your own local vision model (LM Studio, Ollama, vLLM, any OpenAI-compatible endpoint). No cloud keys, no per-image cost, no image bytes ever leave your machine.
 - 📋 **Structured evidence, not a blurry retelling.** The VLM is asked to fill a fixed JSON template — `summary`, `ocr` (verbatim full-text + lines), `layout` regions with reading order, `semantics` (entities & relations), `visual` (colors / style), and an explicit `uncertainty` list. Your main model quotes specifics instead of guessing.
 - 🛡️ **Anti-hallucination by design.** The template *requires* the model to state what it could not determine in `uncertainty`; OCR of an image with no text returns an empty field rather than invented words. If the VLM fails to produce valid JSON, the plugin falls back to the raw answer and marks it — never silently fabricates.
-- 📎 **Paste / upload an image and it just works.** The optional `vision-bridge` service lets text-only routes admit pasted or uploaded images: the host replaces the image part with a local VLM description before the prompt reaches the model. No `read_image` gate rejection, no saving to a file first.
+- 📎 **Paste / upload an image and it just works.** The optional `vision-bridge` service lets text-only routes admit pasted or uploaded images: the host hands the image to a local VLM for description before the prompt reaches the model. No `read_image` gate rejection, no saving to a file first. With `keepThumbnail` on, the message history **keeps the original image thumbnail** with the description text right after it.
 - ⚙️ **Zero-config defaults, fully tunable.** Points at `http://127.0.0.1:1234/v1` by default (LM Studio's default port); every knob — endpoint, model id, token budget, timeouts, image size cap, structured on/off — is a documented config field.
 - 🚀 **Tuned for local GPUs.** Defaults (8192 output tokens, 50 MB image cap, 180 s timeout) are sized for a local workstation GPU running a 9B-class VLM, not a thin cloud request.
 - 🔌 **One plugin, two surfaces.** A model-facing `vision` tool (call it whenever an image path or question is in play) plus an optional `vision-bridge` service for hosts that want automatic image admission on text-only routes.
@@ -73,7 +73,9 @@ If the VLM reply cannot be parsed as JSON, `answer` falls back to the raw text w
 
 ### vision-bridge (optional)
 
-`ctx.provide('vision-bridge', { describeImages(content) })` — lets a text-only host route admit image parts by replacing them with `【name】<VLM summary>（already described by the local vision model; no need to look up the original file）`. Returns `undefined` on failure so the host keeps its original behavior.
+`ctx.provide('vision-bridge', { describeImages(content) })` — lets a text-only host route admit image parts, replacing them with `【name】<VLM summary>（already described by the local vision model; no need to look up the original file）`. Returns `undefined` on failure so the host keeps its original behavior.
+
+With `keepThumbnail: true`, image blocks are **kept** in the message history (the UI renders their thumbnails) with the description text as an adjacent text block. Note this requires a host whose text-only serializer drops image blocks (the model only receives text) — if your host rejects image content on text-only routes, leave `keepThumbnail` at `false` (the default), where image blocks are replaced by the description text alone.
 
 ## Configuration
 
@@ -83,6 +85,7 @@ If the VLM reply cannot be parsed as JSON, `answer` falls back to the raw text w
 | `model` | `qwen3.5-9b-vlm` | Vision-language model id served by the endpoint |
 | `maxTokens` | `8192` | Output token cap; reasoning VLMs burn part of it on thinking |
 | `structured` | `true` | Ask for fixed-shape JSON evidence and return it parsed |
+| `keepThumbnail` | `false` | Keep image blocks in the message history (thumbnails); requires a host whose text-only serializer drops image blocks |
 | `timeoutMs` | `180000` | Per-request wall-time cap |
 | `maxImageBytes` | `52428800` (50 MB) | Maximum encoded image size accepted |
 

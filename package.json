@@ -1,6 +1,6 @@
 {
   "name": "dsh-vision-local",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Local-first vision for text-only DeepSeek Harness agents: route image understanding to a local OpenAI-compatible vision model, return structured JSON evidence (summary / OCR / layout / semantics / visual / uncertainty).",
   "keywords": [
     "dsh",
@@ -23,7 +23,8 @@
     "lib/index.js",
     "cordis.patch.yml",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "README.en.md"
   ],
   "license": "MIT",
   "peerDependencies": {

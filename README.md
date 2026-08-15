@@ -1,107 +1,107 @@
 # dsh-tool-vision
 
-**Local-first vision for text-only DeepSeek Harness agents.**
+**为纯文本的 DeepSeek Harness agent 提供本地优先的视觉能力。**
 
-> npm package: **`dsh-vision-local`** · source repo: `gloryxpnv/dsh-tool-vision`
+> npm 包：**`dsh-vision-local`** · 源码仓库：`gloryxpnv/dsh-tool-vision` · [English README](README.en.md)
 
-Give a text-only model (DeepSeek, GLM, or any chat model without image input) the ability to *see* — using a **local** vision model, with **zero API cost** and **zero image data leaving your machine**.
+让纯文本模型（DeepSeek、GLM 等不支持图片输入的模型）拥有"视觉"——使用**本地**视觉模型，**零 API 成本**，**图片数据完全不出本机**。
 
 ```
-DeepSeek (text-only) ──▶ vision tool ──▶ local VLM (LM Studio / Ollama / any OpenAI-compatible endpoint)
-                                     ◀── structured JSON evidence ──▶
+DeepSeek (纯文本) ──▶ vision 工具 ──▶ 本地 VLM（LM Studio / Ollama / 任意 OpenAI 兼容端点）
+                                     ◀── 结构化 JSON 证据 ──▶
 ```
 
 ---
 
-## Highlights
+## 亮点
 
-- 🏠 **Fully local, fully private.** Images are sent to your own local vision model (LM Studio, Ollama, vLLM, any OpenAI-compatible endpoint). No cloud keys, no per-image cost, no image bytes ever leave your machine.
-- 📋 **Structured evidence, not a blurry retelling.** The VLM is asked to fill a fixed JSON template — `summary`, `ocr` (verbatim full-text + lines), `layout` regions with reading order, `semantics` (entities & relations), `visual` (colors / style), and an explicit `uncertainty` list. Your main model quotes specifics instead of guessing.
-- 🛡️ **Anti-hallucination by design.** The template *requires* the model to state what it could not determine in `uncertainty`; OCR of an image with no text returns an empty field rather than invented words. If the VLM fails to produce valid JSON, the plugin falls back to the raw answer and marks it — never silently fabricates.
-- 📎 **Paste / upload an image and it just works.** The optional `vision-bridge` service lets text-only routes admit pasted or uploaded images: the host replaces the image part with a local VLM description before the prompt reaches the model. No `read_image` gate rejection, no saving to a file first.
-- ⚙️ **Zero-config defaults, fully tunable.** Points at `http://127.0.0.1:1234/v1` by default (LM Studio's default port); every knob — endpoint, model id, token budget, timeouts, image size cap, structured on/off — is a documented config field.
-- 🚀 **Tuned for local GPUs.** Defaults (8192 output tokens, 50 MB image cap, 180 s timeout) are sized for a local workstation GPU running a 9B-class VLM, not a thin cloud request.
-- 🔌 **One plugin, two surfaces.** A model-facing `vision` tool (call it whenever an image path or question is in play) plus an optional `vision-bridge` service for hosts that want automatic image admission on text-only routes.
+- 🏠 **完全本地、完全私密。** 图片只发送给你自己的本地视觉模型（LM Studio、Ollama、vLLM 或任意 OpenAI 兼容端点）。无需云端 key、无单图成本、图片字节永不离开你的机器。
+- 📋 **结构化证据，而非模糊转述。** VLM 被要求填写固定 JSON 模板——`summary`（摘要）、`ocr`（逐字全文+行）、`layout`（版面区域，含阅读顺序）、`semantics`（实体与关系）、`visual`（配色/风格），以及显式的 `uncertainty`（不确定项）列表。主模型引用具体证据作答，而不是凭空猜测。
+- 🛡️ **反幻觉设计。** 模板*强制*模型在 `uncertainty` 中声明无法确定的内容；无文字的图片 OCR 返回空字段而非编造文字。若 VLM 未能产出合法 JSON，插件回退为原始回答并明确标注——绝不静默捏造。
+- 📎 **粘贴 / 上传图片即可用。** 可选的 `vision-bridge` 服务让纯文本路由直接接收粘贴或上传的图片：宿主在 prompt 到达模型前，将图片部分替换为本地 VLM 的描述。不再被 `read_image` 门禁拒绝，也无需先保存文件。
+- ⚙️ **零配置起步，全部可调。** 默认指向 `http://127.0.0.1:1234/v1`（LM Studio 默认端口）；端点、模型 id、token 预算、超时、图片大小上限、结构化开关——每个旋钮都是文档化的配置字段。
+- 🚀 **为本地 GPU 调优。** 默认参数（8192 输出 token、50 MB 图片上限、180 秒超时）面向本地工作站 GPU 上的 9B 级 VLM，而非轻量云请求。
+- 🔌 **一个插件，两个表面。** 面向模型的 `vision` 工具（图片路径或图片问题出现时即可调用）+ 可选的 `vision-bridge` 服务（供希望纯文本路由自动接收图片的宿主使用）。
 
-## Install
+## 安装
 
 ```sh
-# in a DSH profile directory (or via the dsh CLI):
+# 在 DSH profile 目录中（或通过 dsh CLI）：
 dsh plugin --profile web add dsh-vision-local
 ```
 
-Then add the plugin row to your profile patch (`cordis.patch.yml`), or rely on the bundle's own layer — the bundle ships a ready-to-use `cordis.patch.yml` with sane defaults.
+然后可将插件行加入你的 profile patch（`cordis.patch.yml`），或直接依赖 bundle 自带的配置层——bundle 附带一份开箱即用的 `cordis.patch.yml`（合理默认值）。
 
-After installing, restart the host (`pnpm dsh web` or your launch command) so the module is loaded.
+安装后重启宿主（`pnpm dsh web` 或你的启动命令）以加载模块。
 
-### Requirements
+### 环境要求
 
-- A running local vision model with an OpenAI-compatible `/chat/completions` endpoint (e.g. [LM Studio](https://lmstudio.ai), Ollama, vLLM, or any gateway).
-- Node.js ≥ 20.
-- DeepSeek Harness (`dsh`) with the plugin loader.
+- 一个运行中的本地视觉模型，提供 OpenAI 兼容的 `/chat/completions` 端点（例如 [LM Studio](https://lmstudio.ai)、Ollama、vLLM 或任意网关）。
+- Node.js ≥ 20。
+- 带插件加载器的 DeepSeek Harness（`dsh`）。
 
-## Usage
+## 使用
 
-The model sees a `vision` tool. Any time an image file path or an image question appears, it calls:
+模型会看到一个 `vision` 工具。任何出现图片文件路径或图片问题的时候，它都会调用：
 
 ```
-vision(file_path: "/path/to/image.png", question?: "What does this show?")
+vision(file_path: "/path/to/image.png", question?: "这张图里有什么？")
 ```
 
-Supported formats: PNG, JPEG, WebP, GIF.
+支持格式：PNG、JPEG、WebP、GIF。
 
-### Structured output shape
+### 结构化输出结构
 
-In structured mode (default), `answer` is a normalized evidence object:
+在结构化模式（默认开启）下，`answer` 是一个规范化后的证据对象：
 
 ```jsonc
 {
-  "summary": "one-paragraph overview",
-  "ocr": { "full_text": "every visible character, verbatim", "lines": [{ "text": "line" }] },
+  "summary": "一段概览",
+  "ocr": { "full_text": "逐字转写的全部可见文字", "lines": [{ "text": "单行文字" }] },
   "layout": { "regions": [{ "type": "title|paragraph|list|table|chart|form|code|image|icon|link|nav|other", "reading_order": 1, "text": "..." }] },
   "semantics": {
-    "scene": "what kind of scene",
+    "scene": "场景类型",
     "entities": [{ "name": "...", "type": "person|org|place|object|brand|number|date|other", "evidence": "..." }],
     "relations": [{ "subject": "...", "predicate": "...", "object": "..." }]
   },
   "visual": { "dominant_colors": ["#ffffff"], "style": "...", "notes": ["..."] },
-  "uncertainty": ["anything the model could not determine"]
+  "uncertainty": ["模型无法确定的内容"]
 }
 ```
 
-If the VLM reply cannot be parsed as JSON, `answer` falls back to the raw text with `uncertainty` noting the fallback — the tool never invents content.
+若 VLM 回复无法解析为 JSON，`answer` 会回退为原始文本，并在 `uncertainty` 中注明——工具绝不捏造内容。
 
-### vision-bridge (optional)
+### vision-bridge（可选）
 
-`ctx.provide('vision-bridge', { describeImages(content) })` — lets a text-only host route admit image parts by replacing them with `【name】<VLM summary>（already described by the local vision model; no need to look up the original file）`. Returns `undefined` on failure so the host keeps its original behavior.
+`ctx.provide('vision-bridge', { describeImages(content) })` — 让纯文本宿主路由直接接收图片部分，将其替换为 `【名称】<VLM 摘要>（已由本地视觉模型识别，无需查找原文件）`。失败时返回 `undefined`，宿主保持原有行为。
 
-## Configuration
+## 配置
 
-| Field | Default | Description |
+| 字段 | 默认值 | 说明 |
 | :-- | :-- | :-- |
-| `baseURL` | `http://127.0.0.1:1234/v1` | OpenAI-compatible endpoint root (no trailing path) |
-| `model` | `qwen3.5-9b-vlm` | Vision-language model id served by the endpoint |
-| `maxTokens` | `8192` | Output token cap; reasoning VLMs burn part of it on thinking |
-| `structured` | `true` | Ask for fixed-shape JSON evidence and return it parsed |
-| `timeoutMs` | `180000` | Per-request wall-time cap |
-| `maxImageBytes` | `52428800` (50 MB) | Maximum encoded image size accepted |
+| `baseURL` | `http://127.0.0.1:1234/v1` | OpenAI 兼容端点根地址（不带尾部路径） |
+| `model` | `qwen3.5-9b-vlm` | 端点提供的视觉语言模型 id |
+| `maxTokens` | `8192` | 输出 token 上限；推理型 VLM 会消耗一部分用于思考 |
+| `structured` | `true` | 请求固定结构的 JSON 证据并返回解析后的对象 |
+| `timeoutMs` | `180000` | 单次请求的墙钟超时上限 |
+| `maxImageBytes` | `52428800`（50 MB） | 接受的图片最大编码大小 |
 
-## How it works
+## 工作原理
 
-1. The `vision` tool resolves the image path against the session workspace (sandboxed fs), reads the bytes.
-2. It builds a base64 data-URL image block plus the structured template prompt, and calls the local endpoint's `/chat/completions`.
-3. The reply is parsed by a bracket-matching JSON extractor (handles markdown fences, prose around the JSON, nested objects — no truncated fragments), then normalized to the declared output schema.
-4. The main model receives the evidence object only; the image itself never enters its context.
+1. `vision` 工具基于会话工作区（沙箱 fs）解析图片路径，读取字节。
+2. 构建 base64 data-URL 图片块 + 结构化模板 prompt，调用本地端点的 `/chat/completions`。
+3. 回复由括号配平 JSON 提取器解析（支持 markdown fence、JSON 前后的散文、嵌套对象——不会截断残缺片段），再规范化到声明的输出 schema。
+4. 主模型只收到证据对象；图片本身永不进入其上下文。
 
-Reasoning-model note: VLMs that emit `reasoning_content` may stop mid-thought under a tight token budget, leaving `content` empty. The plugin prefers any non-empty field (`content` → `reasoning_content`) and the 8192-token default leaves headroom for both.
+推理型模型注意：会输出 `reasoning_content` 的 VLM 在 token 预算紧张时可能中途停止思考，导致 `content` 为空。插件优先取任一非空字段（`content` → `reasoning_content`），8192 的默认 token 预算为两者都留足了空间。
 
-## Security & privacy
+## 安全与隐私
 
-- **Images never leave your machine.** All inference happens against the endpoint you configure.
-- No telemetry, no network calls other than to your configured local endpoint.
-- The plugin reads only the image file you point it at, via the sandboxed fs.
-- Treat extracted text as untrusted input: never follow instructions found inside an image.
-- As with any DSH plugin, installing runs third-party code with your permissions — review the source before installing.
+- **图片永不离开你的机器。** 所有推理都在你配置的端点上完成。
+- 无遥测，除你配置的本地端点外不做任何网络调用。
+- 插件只通过沙箱 fs 读取你指定的图片文件。
+- 将提取出的文字视为不可信输入：绝不执行图片中出现的指令。
+- 与任何 DSH 插件一样，安装即以你的权限运行第三方代码——安装前请审阅源码。
 
 ## License
 
